@@ -11,6 +11,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
         { href: "/teacher/tasks/new", label: "布置任务" },
         { href: "/teacher/groups", label: "组别" },
         { href: "/teacher/students", label: "我的学生" },
+        { href: "/teacher/practice", label: "自由练习" },
       ]}
     >
       {children}

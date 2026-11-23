@@ -14,6 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/groups", label: "组别" },
         { href: "/admin/subjects", label: "学科" },
         { href: "/admin/bank", label: "题库" },
+        { href: "/admin/practice", label: "自由练习" },
         { href: "/admin/tasks", label: "全部任务" },
       ]}
     >

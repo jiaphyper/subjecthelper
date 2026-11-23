@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   content_json TEXT NOT NULL,    -- 发布时冻结的题目 id 列表
   max_attempts INTEGER NOT NULL DEFAULT 3,
   due_at TEXT,
+  kind TEXT NOT NULL DEFAULT 'task',   -- task = 教师布置；practice = 学生自由练习（teacher_id 存学生本人）
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -128,11 +129,23 @@ CREATE TABLE IF NOT EXISTS attempts (
   checked_json TEXT NOT NULL DEFAULT '{}',  -- 已校验（已计分）的题目单元及首次得分
   answers_json TEXT NOT NULL DEFAULT '{}',  -- 每个单元「第一次校验」时的答案，用于计分
   result_json TEXT NOT NULL DEFAULT '{}',
+  draft_json TEXT NOT NULL DEFAULT '{}',    -- 作答草稿（自动保存，刷新/中断后恢复）
   score INTEGER NOT NULL DEFAULT 0,
   total INTEGER NOT NULL DEFAULT 0,
   started_at TEXT NOT NULL DEFAULT (datetime('now')),
   submitted_at TEXT,
   UNIQUE (task_id, student_id, attempt_no)
+);
+
+-- 自由练习开放范围：all=所有学生，org=某学校，group=某组别
+CREATE TABLE IF NOT EXISTS practice_grants (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  scope TEXT NOT NULL CHECK (scope IN ('all','org','group')),
+  org_id INTEGER REFERENCES orgs(id) ON DELETE CASCADE,
+  group_id INTEGER REFERENCES groups(id) ON DELETE CASCADE,
+  granted_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_org ON users(org_id, role);

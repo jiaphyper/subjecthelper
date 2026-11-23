@@ -10,6 +10,8 @@ export default async function DoTask({ params }: { params: Promise<{ id: string 
   if (!st) notFound();
   const a = st.inProgress;
   if (!a) redirect(`/student/tasks/${id}`);
+  let draft = {};
+  try { draft = JSON.parse(a.draft_json || "{}"); } catch {}
   return (
     <Runner
       taskId={id}
@@ -17,8 +19,10 @@ export default async function DoTask({ params }: { params: Promise<{ id: string 
       title={st.task.title}
       attemptNo={a.attempt_no}
       maxAttempts={st.task.max_attempts}
+      practice={st.practice}
       content={JSON.parse(a.layout_json)}
       initialChecked={JSON.parse(a.checked_json || "{}")}
+      initialDraft={draft}
     />
   );
 }

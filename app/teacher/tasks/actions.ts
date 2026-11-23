@@ -2,13 +2,12 @@
 import { db } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { str, int, ints, back } from "@/lib/util";
-import { buildContent, countItems, TaskConfig, MatchMode } from "@/lib/tasks";
+import { buildContent, countItems, parseConfig } from "@/lib/tasks";
 
 export async function createTask(fd: FormData) {
   const me = await requireRole("teacher");
   const title = str(fd, "title");
   const subjectId = int(fd, "subject_id");
-  const types = fd.getAll("type").map(String);
   const groupIds = ints(fd, "group");
   const onlyMine = fd.get("only_mine") === "1";
   const maxAttempts = Math.max(1, Math.min(10, int(fd, "max_attempts") ?? 3));
@@ -17,18 +16,11 @@ export async function createTask(fd: FormData) {
 
   if (!title) fail("请填写任务名称");
   if (!subjectId) fail("请选择学科");
-  if (!types.length) fail("请至少勾选一种题型");
+  if (due && Number.isNaN(new Date(due).getTime())) fail("截止时间格式不正确");
+  if (due && new Date(due) < new Date()) fail("截止时间不能早于现在");
+  const { cfg, error } = parseConfig(fd);
+  if (error) fail(error);
   if (!groupIds.length) fail("请至少勾选一个组别");
-
-  const cfg: TaskConfig = {};
-  if (types.includes("mcq")) cfg.mcq = { count: Math.max(1, int(fd, "mcq_count") ?? 10), tags: fd.getAll("mcq_tags").map(String) };
-  if (types.includes("match"))
-    cfg.match = { count: Math.max(2, int(fd, "match_count") ?? 8), mode: (str(fd, "match_mode") as MatchMode) || "en_cn", tags: fd.getAll("match_tags").map(String) };
-  if (types.includes("cloze")) {
-    const setId = int(fd, "cloze_set");
-    if (!setId) fail("请选择填空套题");
-    cfg.cloze = { setId: setId!, count: int(fd, "cloze_count") ?? 0 };
-  }
 
   // 只允许自己的组别
   const okGroups = groupIds.filter((g) => (db.prepare("SELECT teacher_id FROM groups WHERE id=?").get(g) as any)?.teacher_id === me.id);
@@ -49,11 +41,13 @@ export async function createTask(fd: FormData) {
 
   const taskId = db.transaction(() => {
     const id = Number(
-      db.prepare("INSERT INTO tasks (title, subject_id, teacher_id, org_id, config_json, content_json, max_attempts, due_at) VALUES (?,?,?,?,?,?,?,?)")
+      db.prepare("INSERT INTO tasks (title, subject_id, teacher_id, org_id, config_json, content_json, max_attempts, due_at, kind) VALUES (?,?,?,?,?,?,?,?, 'task')")
         .run(title, subjectId, me.id, me.org_id, JSON.stringify({ ...cfg, onlyMine }), JSON.stringify(content), maxAttempts, due).lastInsertRowid
     );
-    okGroups.forEach((g) => db.prepare("INSERT INTO task_groups VALUES (?,?)").run(id, g));
-    students.forEach((s) => db.prepare("INSERT INTO task_students VALUES (?,?)").run(id, s.id));
+    const tg = db.prepare("INSERT INTO task_groups VALUES (?,?)");
+    const ts = db.prepare("INSERT INTO task_students VALUES (?,?)");
+    okGroups.forEach((g) => tg.run(id, g));
+    students.forEach((s) => ts.run(id, s.id));
     return id;
   })();
   back(`/teacher/tasks/${taskId}`, { ok: `任务已发布给 ${students.length} 名学生${warnings.length ? "。注意：" + warnings.join("；") : ""}` });

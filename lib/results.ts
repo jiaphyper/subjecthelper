@@ -12,7 +12,9 @@ export function taskResults(taskId: number) {
   const attempts = db.prepare("SELECT student_id, attempt_no, score, total, status, COALESCE(submitted_at, started_at) submitted_at FROM attempts WHERE task_id=? ORDER BY attempt_no").all(taskId) as any[];
   return students.map((s) => {
     const mine = attempts.filter((a) => a.student_id === s.id);
-    const best = mine.length ? Math.max(...mine.map((a) => pct(a.score, a.total))) : null;
+    // 只有已提交的作答才算「完成」，进行中的不参与最高分/平均分
+    const done = mine.filter((a) => a.status === "submitted");
+    const best = done.length ? Math.max(...done.map((a) => pct(a.score, a.total))) : null;
     return { ...s, attempts: mine.map((a) => ({ ...a, pct: pct(a.score, a.total) })), best, last: mine.length ? mine[mine.length - 1].submitted_at : null };
   });
 }

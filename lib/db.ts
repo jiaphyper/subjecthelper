@@ -11,9 +11,11 @@ function init(): Database.Database {
   const db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
+  db.pragma("busy_timeout = 5000");
   const schema = fs.readFileSync(path.join(process.cwd(), "lib", "schema.sql"), "utf8");
   migrate(db);
   db.exec(schema);
+  addColumns(db);
   // 首次运行：创建默认管理员
   const hasAdmin = db.prepare("SELECT 1 FROM users WHERE role='admin' LIMIT 1").get();
   if (!hasAdmin) {
@@ -28,6 +30,16 @@ function migrate(db: Database.Database) {
   const cols = db.prepare("PRAGMA table_info(attempts)").all() as { name: string }[];
   // v0.1 的 attempts 表没有 status 列（整卷提交模式），升级为逐题校验模式
   if (cols.length && !cols.some((c) => c.name === "status")) db.exec("DROP TABLE attempts");
+}
+
+/** 给旧库补列（CREATE TABLE IF NOT EXISTS 不会改已有表） */
+function addColumns(db: Database.Database) {
+  const has = (table: string, col: string) =>
+    (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some((c) => c.name === col);
+  if (!has("tasks", "kind")) db.exec("ALTER TABLE tasks ADD COLUMN kind TEXT NOT NULL DEFAULT 'task'");
+  if (!has("attempts", "draft_json")) db.exec("ALTER TABLE attempts ADD COLUMN draft_json TEXT NOT NULL DEFAULT '{}'");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_tasks_kind ON tasks(kind, teacher_id)");
+  db.exec("DELETE FROM sessions WHERE expires_at < strftime('%Y-%m-%dT%H:%M:%fZ','now')");
 }
 
 const g = globalThis as unknown as { __db?: Database.Database };

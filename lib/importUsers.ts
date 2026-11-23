@@ -42,8 +42,8 @@ export function importUsers(rows: Record<string, string>[], defaultOrgId: number
         if (p.name || p.org) res.errors.push(`第 ${p.line} 行：缺少用户名`);
         continue;
       }
-      const role = p.roleRaw ? ROLE_MAP[p.roleRaw.toLowerCase()] : "student";
-      if (!role) {
+      const role = p.roleRaw ? ROLE_MAP[p.roleRaw.toLowerCase()] : null;
+      if (p.roleRaw && !role) {
         res.errors.push(`第 ${p.line} 行：角色「${p.roleRaw}」无效（应为 学生/教师）`);
         continue;
       }
@@ -55,7 +55,8 @@ export function importUsers(rows: Record<string, string>[], defaultOrgId: number
           res.errors.push(`第 ${p.line} 行：${p.username} 是管理员账号，跳过`);
           continue;
         }
-        db.prepare("UPDATE users SET name=COALESCE(NULLIF(?,''), name), role=?, org_id=COALESCE(?, org_id) WHERE id=?")
+        // 角色列留空时保持原角色（避免把教师误降为学生）
+        db.prepare("UPDATE users SET name=COALESCE(NULLIF(?,''), name), role=COALESCE(?, role), org_id=COALESCE(?, org_id) WHERE id=?")
           .run(p.name, role, orgId, existing.id);
         if (p.password) db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(hashPassword(p.password), existing.id);
         userId = existing.id;
@@ -63,7 +64,7 @@ export function importUsers(rows: Record<string, string>[], defaultOrgId: number
       } else {
         const r = db
           .prepare("INSERT INTO users (username, password_hash, name, role, org_id) VALUES (?,?,?,?,?)")
-          .run(p.username, hashPassword(p.password || "123456"), p.name || p.username, role, orgId);
+          .run(p.username, hashPassword(p.password || "123456"), p.name || p.username, role ?? "student", orgId);
         userId = Number(r.lastInsertRowid);
         res.created++;
       }

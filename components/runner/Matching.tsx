@@ -1,13 +1,15 @@
 "use client";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useT } from "../I18nProvider";
 
 type Item = { id: number; text: string };
-type Board = { left: Item[]; right: Item[] };
+type Board = { left: Item[]; right: Item[]; swap?: boolean };
 const COLORS = ["#2f5d50", "#c2410c", "#1d4ed8", "#9333ea", "#be123c", "#0e7490", "#a16207", "#4d7c0f"];
 
 export function BoardView({ board, mode, value, onChange, locked, marks }: {
   board: Board; mode: string; value: Record<string, number>; onChange: (v: Record<string, number>) => void; locked: boolean; marks?: Record<string, boolean>;
 }) {
+  const t = useT();
   const wrap = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<number | null>(null);
   const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number; c: string }[]>([]);
@@ -63,10 +65,14 @@ export function BoardView({ board, mode, value, onChange, locked, marks }: {
       if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) > 6) moved = true;
       if (moved) setDrag({ x1, y1, x2: ev.clientX - box.left, y2: ev.clientY - box.top });
     };
-    const up = (ev: PointerEvent) => {
+    const cancel = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", cancel);
       setDrag(null);
+    };
+    const up = (ev: PointerEvent) => {
+      cancel();
       if (!moved) {
         // 当作点击
         if (value[leftId] !== undefined) unlinkLeft(leftId);
@@ -78,6 +84,7 @@ export function BoardView({ board, mode, value, onChange, locked, marks }: {
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", cancel);
   };
 
   const clickRight = (rightId: number) => {
@@ -90,10 +97,12 @@ export function BoardView({ board, mode, value, onChange, locked, marks }: {
   return (
     <div className="card" style={{ marginBottom: 0 }}>
       <p className="muted small" style={{ marginTop: 0 }}>
-        {mode === "en_cn" ? "把英文单词和中文意思连起来。" : "把英文单词和它的英文释义连起来。"}
-        点左边的词再点右边（也可以直接拖过去），点已连好的词可取消。
+        {mode === "en_cn"
+          ? (board.swap ? t("把中文意思和英文单词连起来。") : t("把英文单词和中文意思连起来。"))
+          : (board.swap ? t("把英文释义和对应的单词连起来。") : t("把英文单词和它的英文释义连起来。"))}
+        {t("点左边的词再点右边（也可以直接拖过去），点已连好的词可取消。")}
       </p>
-      <div className="match-board" ref={wrap}>
+      <div className={"match-board" + (board.swap && mode === "en_def" ? " long-left" : "")} ref={wrap}>
         <svg className="match-svg">
           {lines.map((l, i) => <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.c} strokeWidth={3} strokeLinecap="round" />)}
           {drag && <line x1={drag.x1} y1={drag.y1} x2={drag.x2} y2={drag.y2} stroke="#888" strokeWidth={2} strokeDasharray="6 4" />}
@@ -125,10 +134,10 @@ export function BoardView({ board, mode, value, onChange, locked, marks }: {
         </div>
       </div>
       <div className="row" style={{ marginTop: 10 }}>
-        <span className="small muted">已连 {pairs.length} / {board.left.length}</span>
+        <span className="small muted">{t(`已连 ${pairs.length} / ${board.left.length}`)}</span>
         {pairs.length > 0 && !locked && (
           <button type="button" className="btn-ghost btn-sm right" onClick={() => { const v = { ...value }; board.left.forEach((l) => delete v[l.id]); onChange(v); }}>
-            清空本组重新连
+            {t("清空本组重新连")}
           </button>
         )}
       </div>

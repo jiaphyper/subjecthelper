@@ -1,6 +1,7 @@
 import { currentUser } from "@/lib/auth";
 import { makeWorkbook } from "@/lib/excel";
 import { clozeTemplateDocx } from "@/lib/docx";
+import { getLang } from "@/lib/i18n-server";
 
 const TEMPLATES: Record<string, { file: string; sheet: string; rows: any[][]; widths: number[] }> = {
   users: {
@@ -36,6 +37,41 @@ const TEMPLATES: Record<string, { file: string; sheet: string; rows: any[][]; wi
   },
 };
 
+/** 英文界面下载英文表头的模板（导入时中英文表头都能识别） */
+const TEMPLATES_EN: typeof TEMPLATES = {
+  users: {
+    file: "users_template.xlsx",
+    sheet: "Users",
+    widths: [14, 14, 10, 10, 16],
+    rows: [
+      ["username", "name", "role", "password", "org"],
+      ["t_wang", "Ms Wang", "teacher", "", "Demo School"],
+      ["s001", "Tom", "student", "", "Demo School"],
+      ["s002", "Amy", "student", "", "Demo School"],
+    ],
+  },
+  mcq: {
+    file: "mcq_template.xlsx",
+    sheet: "MCQ",
+    widths: [50, 18, 18, 18, 18, 8, 30, 12],
+    rows: [
+      ["question", "A", "B", "C", "D", "answer", "explanation", "tag"],
+      ["Which word means 'happy'?", "sad", "glad", "angry", "tired", "B", "glad = happy", "Unit 1"],
+      ["What is the SI unit of force?", "joule", "watt", "newton", "pascal", "C", "", "Mechanics"],
+    ],
+  },
+  vocab: {
+    file: "vocab_template.xlsx",
+    sheet: "Vocab",
+    widths: [18, 18, 50, 12],
+    rows: [
+      ["word", "chinese", "definition", "tag"],
+      ["apple", "苹果", "a round fruit with red or green skin", "Unit 1"],
+      ["velocity", "速度", "speed in a given direction", "Mechanics"],
+    ],
+  },
+};
+
 export async function GET(_req: Request, { params }: { params: Promise<{ kind: string }> }) {
   const me = await currentUser();
   if (!me || me.role === "student") return new Response("Forbidden", { status: 403 });
@@ -46,7 +82,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ kind: s
     file = "挖空填词模板.docx";
     type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   } else {
-    const t = TEMPLATES[kind];
+    const t = ((await getLang()) === "en" ? TEMPLATES_EN : TEMPLATES)[kind];
     if (!t) return new Response("Not found", { status: 404 });
     body = makeWorkbook(t.sheet, t.rows, t.widths);
     file = t.file;

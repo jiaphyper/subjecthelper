@@ -7,18 +7,43 @@ import { db, Role, User } from "./db";
 const COOKIE = "sh_session";
 const DAYS = 14;
 
+/* 简单的登录防暴力破解：同一用户名 10 分钟内失败 5 次，锁定 10 分钟（内存计数，重启清零） */
+const FAILS = new Map<string, { n: number; first: number }>();
+const MAX_FAILS = 5;
+const WINDOW = 10 * 60_000;
+
+export function loginLocked(username: string) {
+  const f = FAILS.get(username.trim().toLowerCase());
+  return !!f && f.n >= MAX_FAILS && Date.now() - f.first < WINDOW;
+}
+
 export function verifyLogin(username: string, password: string): User | null {
+  const key = username.trim().toLowerCase();
+  if (loginLocked(key)) return null;
   const row = db.prepare("SELECT * FROM users WHERE username = ? AND active = 1").get(username.trim()) as
     | (User & { password_hash: string })
     | undefined;
-  if (!row || !bcrypt.compareSync(password, row.password_hash)) return null;
+  if (!row || !bcrypt.compareSync(password, row.password_hash)) {
+    const f = FAILS.get(key);
+    if (!f || Date.now() - f.first > WINDOW) FAILS.set(key, { n: 1, first: Date.now() });
+    else f.n++;
+    return null;
+  }
+  FAILS.delete(key);
   const { password_hash, ...user } = row;
   return user;
+}
+
+/** 改密码后让该用户的其它设备下线（保留当前会话） */
+export async function destroyOtherSessions(userId: number) {
+  const token = (await cookies()).get(COOKIE)?.value ?? "";
+  db.prepare("DELETE FROM sessions WHERE user_id = ? AND token <> ?").run(userId, token);
 }
 
 export async function createSession(userId: number) {
   const token = crypto.randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + DAYS * 86400_000);
+  db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(new Date().toISOString());
   db.prepare("INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)").run(token, userId, expires.toISOString());
   (await cookies()).set(COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", expires });
 }
