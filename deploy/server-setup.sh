@@ -53,7 +53,17 @@ echo "-----------------------------------------------------------------"
 cat "$KEY.pub"
 echo "-----------------------------------------------------------------"
 read -r -p "添加好后按回车继续…" _
-ssh -T git@github-subjecthelper 2>&1 | grep -qi "successfully authenticated" && echo "✅ GitHub 连接成功" || { echo "❌ 连接 GitHub 失败，请检查 Deploy key"; exit 1; }
+# 注意：认证成功时 ssh -T 也会返回退出码 1（GitHub 不提供 shell），所以先取输出再判断
+for i in 1 2 3; do
+  OUT="$(ssh -o ConnectTimeout=15 -T git@github-subjecthelper 2>&1 || true)"
+  if echo "$OUT" | grep -qi "successfully authenticated"; then echo "✅ GitHub 连接成功"; break; fi
+  echo "$OUT"
+  if [ "$i" = 3 ]; then
+    echo "❌ 连接 GitHub 失败：Permission denied 说明 Deploy key 没加对；超时说明服务器连不上 ssh.github.com:443"
+    exit 1
+  fi
+  read -r -p "检查后按回车重试…" _
+done
 
 step "克隆仓库"
 mkdir -p "$(dirname "$APP_DIR")" "$DATA_DIR"
