@@ -6,5 +6,5 @@ import PracticeAdmin from "@/components/PracticeAdmin";
 export default async function Page({ searchParams }: { searchParams: SP }) {
   const me = await requireRole("admin");
   const sp = await searchParams;
-  return (<><Flash ok={sp.ok} err={sp.err} /><PracticeAdmin me={me} /></>);
+  return (<><Flash ok={sp.ok} err={sp.err} /><PracticeAdmin me={me} sp={sp} /></>);
 }

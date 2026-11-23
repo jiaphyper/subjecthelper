@@ -3,9 +3,10 @@ import { getT } from "@/lib/i18n-server";
 import { grantPractice, revokePractice } from "@/lib/practiceActions";
 import ConfirmButton from "./ConfirmButton";
 import { teacherSubjectIds } from "@/lib/practice";
+import Pager, { pageOf, PER_PAGE } from "./Pager";
 
 /** 自由练习开放设置（admin / 教师共用） */
-export default async function PracticeAdmin({ me }: { me: User }) {
+export default async function PracticeAdmin({ me, sp = {} }: { me: User; sp?: Record<string, string | undefined> }) {
   const t = await getT();
   const isAdmin = me.role === "admin";
   const allSubjects = db.prepare("SELECT id, name FROM subjects ORDER BY name").all() as { id: number; name: string }[];
@@ -16,18 +17,31 @@ export default async function PracticeAdmin({ me }: { me: User }) {
   const groups = db
     .prepare(`SELECT g.id, g.name, o.name org, u.name teacher FROM groups g JOIN orgs o ON o.id=g.org_id LEFT JOIN users u ON u.id=g.teacher_id ${isAdmin ? "" : "WHERE g.teacher_id=?"} ORDER BY o.name, g.name`)
     .all(...(isAdmin ? [] : [me.id])) as any[];
+  /* 已开放列表：每页 30 条；admin 可按学科 / 教师 / 范围筛选 */
+  const { page, offset } = pageOf(sp);
+  const gw: string[] = [];
+  const ga: any[] = [];
+  if (!isAdmin) { gw.push("(p.scope<>'group' OR g.teacher_id=?)"); ga.push(me.id); }
+  if (sp.subject) { gw.push("p.subject_id=?"); ga.push(Number(sp.subject)); }
+  if (isAdmin && sp.teacher) { gw.push("(p.granted_by=? OR g.teacher_id=?)"); ga.push(Number(sp.teacher), Number(sp.teacher)); }
+  if (isAdmin && sp.scope) { gw.push("p.scope=?"); ga.push(sp.scope); }
+  const GW = gw.length ? "WHERE " + gw.join(" AND ") : "";
+  const FROM = `FROM practice_grants p JOIN subjects s ON s.id=p.subject_id
+       LEFT JOIN orgs o ON o.id=p.org_id LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users u ON u.id=p.granted_by`;
+  const grantTotal = (db.prepare(`SELECT COUNT(*) c ${FROM} ${GW}`).get(...ga) as { c: number }).c;
   const grants = db
     .prepare(
       `SELECT p.*, s.name subject, o.name org, g.name grp, g.teacher_id, u.name by_name,
          CASE p.scope WHEN 'all' THEN (SELECT COUNT(*) FROM users WHERE role='student' AND active=1)
                       WHEN 'org' THEN (SELECT COUNT(*) FROM users WHERE role='student' AND active=1 AND org_id=p.org_id)
                       ELSE (SELECT COUNT(*) FROM group_members WHERE group_id=p.group_id) END n
-       FROM practice_grants p JOIN subjects s ON s.id=p.subject_id
-       LEFT JOIN orgs o ON o.id=p.org_id LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users u ON u.id=p.granted_by
-       ${isAdmin ? "" : "WHERE p.scope<>'group' OR g.teacher_id=?"}
-       ORDER BY s.name, p.scope, o.name, g.name`
+       ${FROM} ${GW}
+       ORDER BY p.id DESC LIMIT ${PER_PAGE} OFFSET ${offset}`
     )
-    .all(...(isAdmin ? [] : [me.id])) as any[];
+    .all(...ga) as any[];
+  const teachers = isAdmin ? (db.prepare("SELECT id, name, username FROM users WHERE role='teacher' ORDER BY name").all() as any[]) : [];
+  const gFiltered = !!(sp.subject || sp.teacher || sp.scope);
+  const basePath = isAdmin ? "/admin/practice" : "/teacher/practice";
   // 教师看看自己组里学生的练习情况（近 7 天）
   const activity = !isAdmin
     ? (db
@@ -91,6 +105,26 @@ export default async function PracticeAdmin({ me }: { me: User }) {
       )}
 
       <h2>{t("已开放")}</h2>
+      {isAdmin && (
+        <form className="row card filter-bar" method="get" action={basePath}>
+          <select name="subject" defaultValue={sp.subject ?? ""} style={{ width: 180 }}>
+            <option value="">{t("全部学科")}</option>
+            {allSubjects.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
+          <select name="teacher" defaultValue={sp.teacher ?? ""} style={{ width: 170 }}>
+            <option value="">{t("全部教师")}</option>
+            {teachers.map((x) => <option key={x.id} value={x.id}>{x.name}（{x.username}）</option>)}
+          </select>
+          <select name="scope" defaultValue={sp.scope ?? ""} style={{ width: 150 }}>
+            <option value="">{t("全部范围")}</option>
+            <option value="all">{t("全部学生")}</option>
+            <option value="org">{t("学校")}</option>
+            <option value="group">{t("组别")}</option>
+          </select>
+          <button className="btn-ghost">{t("筛选")}</button>
+          {gFiltered && <a className="small" href={basePath}>{t("清除筛选")}</a>}
+        </form>
+      )}
       <div className="table-wrap">
         <table>
           <thead><tr><th>{t("学科")}</th><th>{t("范围")}</th><th>{t("学生数")}</th><th>{t("开放人")}</th><th></th></tr></thead>
@@ -114,10 +148,11 @@ export default async function PracticeAdmin({ me }: { me: User }) {
                 </tr>
               );
             })}
-            {!grants.length && <tr><td colSpan={5} className="muted">{t("还没有开放任何学科")}</td></tr>}
+            {!grants.length && <tr><td colSpan={5} className="muted">{gFiltered ? t("没有符合条件的记录") : t("还没有开放任何学科")}</td></tr>}
           </tbody>
         </table>
       </div>
+      <Pager path={basePath} params={sp} page={page} total={grantTotal} />
 
       {!isAdmin && (
         <>

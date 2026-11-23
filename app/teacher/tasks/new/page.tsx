@@ -15,10 +15,9 @@ export default async function NewTaskPage({ searchParams }: { searchParams: SP }
   const subjects = loadSubjectOptions();
   const groups = (db.prepare("SELECT g.id, g.name FROM groups g WHERE g.teacher_id=? ORDER BY g.name").all(me.id) as any[]).map((g) => ({
     ...g,
-    members: (db.prepare("SELECT student_id FROM group_members WHERE group_id=?").all(g.id) as any[]).map((r) => r.student_id),
-    mine: (db
-      .prepare("SELECT m.student_id FROM group_members m JOIN teacher_students ts ON ts.student_id=m.student_id AND ts.teacher_id=? WHERE m.group_id=?")
-      .all(me.id, g.id) as any[]).map((r) => r.student_id),
+    members: (db
+      .prepare("SELECT m.student_id FROM group_members m JOIN users u ON u.id=m.student_id WHERE m.group_id=? AND u.active=1 AND u.role='student'")
+      .all(g.id) as any[]).map((r) => r.student_id),
   }));
   return (
     <>

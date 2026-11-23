@@ -10,7 +10,6 @@ export async function createTask(fd: FormData): Promise<{ error?: string } | voi
   const title = str(fd, "title");
   const subjectId = int(fd, "subject_id");
   const groupIds = ints(fd, "group");
-  const onlyMine = fd.get("only_mine") === "1";
   const maxAttempts = Math.max(1, Math.min(10, int(fd, "max_attempts") ?? 3));
   const due = str(fd, "due_at") || null;
 
@@ -29,11 +28,10 @@ export async function createTask(fd: FormData): Promise<{ error?: string } | voi
   const students = db
     .prepare(
       `SELECT DISTINCT m.student_id id FROM group_members m JOIN users u ON u.id=m.student_id
-       WHERE m.group_id IN (${ph}) AND u.active=1 AND u.role='student'
-       ${onlyMine ? "AND EXISTS (SELECT 1 FROM teacher_students ts WHERE ts.teacher_id=? AND ts.student_id=u.id)" : ""}`
+       WHERE m.group_id IN (${ph}) AND u.active=1 AND u.role='student'`
     )
-    .all(...okGroups, ...(onlyMine ? [me.id] : [])) as { id: number }[];
-  if (!students.length) return { error: onlyMine ? "所选组别中没有绑定给你的学生" : "所选组别中没有学生" };
+    .all(...okGroups) as { id: number }[];
+  if (!students.length) return { error: "所选组别中没有学生" };
 
   const { content, warnings } = buildContent(subjectId, cfg);
   const n = countItems(content);
@@ -42,7 +40,7 @@ export async function createTask(fd: FormData): Promise<{ error?: string } | voi
   const taskId = db.transaction(() => {
     const id = Number(
       db.prepare("INSERT INTO tasks (title, subject_id, teacher_id, org_id, config_json, content_json, max_attempts, due_at, kind) VALUES (?,?,?,?,?,?,?,?, 'task')")
-        .run(title, subjectId, me.id, me.org_id, JSON.stringify({ ...cfg, onlyMine }), JSON.stringify(content), maxAttempts, due).lastInsertRowid
+        .run(title, subjectId, me.id, me.org_id, JSON.stringify(cfg), JSON.stringify(content), maxAttempts, due).lastInsertRowid
     );
     const tg = db.prepare("INSERT INTO task_groups VALUES (?,?)");
     const ts = db.prepare("INSERT INTO task_students VALUES (?,?)");

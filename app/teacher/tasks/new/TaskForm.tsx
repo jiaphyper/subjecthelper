@@ -4,14 +4,13 @@ import type { SubjectOption } from "@/lib/subjectOptions";
 import ContentFields from "@/components/ContentFields";
 import { useT } from "@/components/I18nProvider";
 
-interface Grp { id: number; name: string; members: number[]; mine: number[] }
+interface Grp { id: number; name: string; members: number[] }
 type Action = (fd: FormData) => Promise<{ error?: string } | void>;
 
 export default function TaskForm({ subjects, groups, action }: { subjects: SubjectOption[]; groups: Grp[]; action: Action }) {
   const t = useT();
   const [title, setTitle] = useState("");
   const [picked, setPicked] = useState<Set<number>>(new Set());
-  const [onlyMine, setOnlyMine] = useState(false);
   const [contentIssues, setContentIssues] = useState<string[]>([]);
   const [serverError, setServerError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -21,15 +20,12 @@ export default function TaskForm({ subjects, groups, action }: { subjects: Subje
     setPicked(n);
   };
   // 多个组里重复的学生只算一次
-  const recipients = new Set(groups.filter((g) => picked.has(g.id)).flatMap((g) => (onlyMine ? g.mine : g.members))).size;
+  const recipients = new Set(groups.filter((g) => picked.has(g.id)).flatMap((g) => g.members)).size;
 
   /* ---------- 前端检查：不通过时 Publish 置灰，并列出还差什么 ---------- */
   let groupIssue = "";
   if (!picked.size) groupIssue = "请至少勾选一个组别";
-  else if (!recipients)
-    groupIssue = onlyMine
-      ? "这些组里没有绑定给你的学生。可以取消勾选「只发给组内绑定给我的学生」，或先到「我的学生」绑定"
-      : "所选组别中没有学生";
+  else if (!recipients) groupIssue = "所选组别中没有学生";
   const issues = [...(title.trim() ? [] : ["请填写任务名称"]), ...contentIssues, ...(groupIssue ? [groupIssue] : [])];
   const blocked = issues.length > 0 || pending;
 
@@ -64,15 +60,12 @@ export default function TaskForm({ subjects, groups, action }: { subjects: Subje
 
       <div className={"card" + (groupIssue && picked.size ? " card-warn" : "")}>
         <h2>{t("发布给哪些组别")}</h2>
-        <label className="row" style={{ color: "var(--ink)", marginBottom: 8 }}>
-          <input type="checkbox" name="only_mine" value="1" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} /> {t("只发给组内绑定给我的学生")}
-        </label>
         <div className="checklist">
           {groups.map((g) => (
             <label key={g.id}>
               <input type="checkbox" name="group" value={g.id} checked={picked.has(g.id)} onChange={() => toggle(g.id)} />
               <b>{g.name}</b>
-              <span className="muted small">{t(`${g.members.length} 人`)} · {t(`我的学生 ${g.mine.length} 人`)}</span>
+              <span className="muted small">{t(`${g.members.length} 人`)}</span>
             </label>
           ))}
           {!groups.length && <div className="muted small">{t("你还没有组别，请先到「组别」页面创建。")}</div>}

@@ -446,6 +446,17 @@ export const EN: Record<string, string> = {
   "格式错误": "Invalid format",
 
   /* ---------- 自由练习 ---------- */
+  "共 {a} 条": "{a} total",
+  "第 {a} / {b} 页": "page {a} / {b}",
+  "‹ 上一页": "‹ Prev",
+  "下一页 ›": "Next ›",
+  "搜索任务名": "Search title",
+  "全部学科": "All subjects",
+  "全部教师": "All teachers",
+  "全部范围": "All scopes",
+  "清除筛选": "Clear filters",
+  "没有符合条件的任务": "No matching assignments",
+  "没有符合条件的记录": "No matching records",
   "绑定教师 / 组别 / 学科": "Teachers / Groups / Subjects",
   "只有教师可以设置学科": "Only teachers can have subjects",
   "已保存教师学科": "Teacher's subjects saved",

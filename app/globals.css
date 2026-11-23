@@ -255,3 +255,11 @@ tr:hover td { background: #fcfcfa; }
 /* 改密码成功页 */
 .done-card { text-align: center; }
 .done-icon { width: 52px; height: 52px; border-radius: 50%; margin: 4px auto 12px; display: grid; place-items: center; background: var(--ok-soft); color: var(--ok); font-size: 26px; font-weight: 700; }
+
+/* 分页 / 筛选 */
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 12px 0 4px; }
+.pager-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pager .btn.disabled { opacity: .4; pointer-events: none; }
+.filter-bar { gap: 8px; }
+
+.lang-switch.pending { opacity: .6; }

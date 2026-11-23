@@ -12,7 +12,7 @@ export default async function TeacherHome({ searchParams }: { searchParams: SP }
     <>
       <div className="topbar"><h1>{t("我的任务")}</h1><a className="btn" href="/teacher/tasks/new">{t("＋ 布置任务")}</a></div>
       <Flash ok={sp.ok} err={sp.err} />
-      <TaskTable teacherId={me.id} base="/teacher/tasks" />
+      <TaskTable teacherId={me.id} base="/teacher/tasks" path="/teacher" sp={sp} />
     </>
   );
 }
