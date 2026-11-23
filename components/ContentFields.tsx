@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { SubjectOption } from "@/lib/subjectOptions";
 import { useT } from "./I18nProvider";
 
@@ -30,7 +30,12 @@ function TagPicker({ tags, sel, setSel, name, count }: {
 }
 
 /** 学科 + 题型配置（教师布置任务、学生自由组卷共用） */
-export default function ContentFields({ subjects, limits }: { subjects: SubjectOption[]; limits?: { mcq: number; match: number } }) {
+export default function ContentFields({ subjects, limits, onIssues }: {
+  subjects: SubjectOption[];
+  limits?: { mcq: number; match: number };
+  /** 题型部分还没填好的地方（中文 key），用于禁用提交按钮 */
+  onIssues?: (issues: string[]) => void;
+}) {
   const t = useT();
   const [sid, setSid] = useState(subjects[0].id);
   const [types, setTypes] = useState<Set<string>>(new Set(["mcq"]));
@@ -48,6 +53,18 @@ export default function ContentFields({ subjects, limits }: { subjects: SubjectO
   const vocabAvail = modes.size ? vt.reduce((a, x) => a + Number(x[field]), 0) : 0;
   const cset = s.clozeSets.find((c) => c.id === setId);
   const cap = (n: number, max?: number) => (max ? Math.min(n, max) : n);
+
+  const issues: string[] = [];
+  if (!types.size) issues.push("请至少勾选一种题型");
+  if (types.has("mcq") && !mcqAvail) issues.push("选择题：所选范围没有题目");
+  if (types.has("match") && !modes.size) issues.push("连线题请至少勾选一种连线方式");
+  else if (types.has("match") && vocabAvail < 2) issues.push("连线题：所选范围的词汇不足 2 个");
+  if (types.has("cloze") && !setId) issues.push("请选择填空套题");
+  const issuesKey = issues.join("|");
+  useEffect(() => {
+    onIssues?.(issuesKey ? issuesKey.split("|") : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [issuesKey]);
 
   const typeBox = (key: string, label: string, extra?: React.ReactNode, last = false) => (
     <label className="row" style={{ color: "var(--ink)", fontSize: 15, fontWeight: 600, margin: 0 }}>

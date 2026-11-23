@@ -143,7 +143,7 @@ export function contentModes(c: TaskContent): MatchMode[] {
 }
 
 /* ---------- 学生端看到的版本（不含答案）：每次作答重新打乱顺序 ---------- */
-export interface PublicBoard { mode?: MatchMode; swap?: boolean; left: { id: number; text: string }[]; right: { id: number; text: string }[] }
+export interface PublicBoard { mode?: MatchMode; /** true = 本组左右中英混排 */ swap?: boolean; left: { id: number; text: string }[]; right: { id: number; text: string }[] }
 export interface PublicContent {
   /** perm[显示位置] = 原始选项下标 */
   mcq?: { id: number; stem: string; options: string[]; perm?: number[] }[];
@@ -170,13 +170,19 @@ export function publicContent(c: TaskContent): PublicContent {
       const pairs = shuffle(c.match.pairs.filter((x) => pairMode(c, x) === mode));
       for (let i = 0; i < pairs.length; i += BOARD_SIZE) {
         const chunk = pairs.slice(i, i + BOARD_SIZE);
-        // swap：本组英文放右边、中文/释义放左边（每组随机）
-        const swap = !!c.match.swap && Math.random() < 0.5;
+        // 左右随机：同一组里约一半的词对交换左右（左边一列中英混排），每次作答重新随机。
+        // 旧任务没有 swap 字段，也默认开启；只有教师明确取消勾选（swap=false）才固定英文在左
+        const mix = c.match.swap !== false && chunk.length >= 2;
+        let flipped = new Set<number>();
+        if (mix) {
+          const n = Math.max(1, Math.min(chunk.length - 1, Math.round(chunk.length * (0.3 + Math.random() * 0.4))));
+          flipped = new Set(shuffle(chunk.map((x) => x.id)).slice(0, n));
+        }
         boards.push({
           mode,
-          swap,
-          left: chunk.map((x) => ({ id: x.id, text: swap ? x.right : x.left })),
-          right: shuffle(chunk.map((x) => ({ id: x.id, text: swap ? x.left : x.right }))),
+          swap: mix,
+          left: shuffle(chunk.map((x) => ({ id: x.id, text: flipped.has(x.id) ? x.right : x.left }))),
+          right: shuffle(chunk.map((x) => ({ id: x.id, text: flipped.has(x.id) ? x.left : x.right }))),
         });
       }
     }

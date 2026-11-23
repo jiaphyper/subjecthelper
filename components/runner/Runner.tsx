@@ -5,6 +5,7 @@ import McqQuestion from "./Mcq";
 import { BoardView } from "./Matching";
 import Cloze, { Place } from "./Cloze";
 import { useT } from "../I18nProvider";
+import { useConfirm } from "../Dialog";
 
 type Recorded = Record<string, { score: number; total: number }>;
 type Marks = Record<string, boolean | boolean[]>;
@@ -23,6 +24,7 @@ export default function Runner({ taskId, attemptId, title, attemptNo, maxAttempt
   content: PublicContent; initialChecked: Recorded; initialDraft: Draft;
 }) {
   const t = useT();
+  const confirm = useConfirm();
   const units = useMemo(() => [
     ...(content.mcq ?? []).map((q) => `mcq:${q.id}`),
     ...(content.match?.boards ?? []).map((_, i) => `match:${i}`),
@@ -123,7 +125,7 @@ export default function Runner({ taskId, attemptId, title, attemptNo, maxAttempt
     const warn = answeredEnough();
     if (warn) {
       if (unit.startsWith("mcq:")) { setErr(warn); return; }
-      if (!confirm(warn)) return;
+      if (!(await confirm({ message: warn, okText: t("仍然校验"), cancelText: t("继续作答") }))) return;
     }
     setBusy(true); setErr("");
     try {
@@ -159,10 +161,16 @@ export default function Runner({ taskId, attemptId, title, attemptNo, maxAttempt
   function go(i: number) { setIdx(i); setErr(""); window.scrollTo(0, 0); }
 
   async function finish() {
-    const msg = unchecked
-      ? t(`还有 ${unchecked} 道题没有校验，这些题将记 0 分。确定结束第 ${attemptNo} 次作答吗？`)
-      : t(`确定结束第 ${attemptNo} 次作答？本次得分 ${recordedScore}/${totalPossible}。`);
-    if (!confirm(msg)) return;
+    const ok = await confirm({
+      title: t(`结束第 ${attemptNo} 次作答？`),
+      message: unchecked
+        ? t(`还有 ${unchecked} 道题没有校验，这些题将记 0 分。目前得分 ${recordedScore}/${totalPossible}。`)
+        : t(`本次得分 ${recordedScore}/${totalPossible}。提交后不能再修改。`),
+      okText: t("结束并提交"),
+      cancelText: t("继续作答"),
+      danger: unchecked > 0,
+    });
+    if (!ok) return;
     setBusy(true);
     dirty.current = false;
     try {

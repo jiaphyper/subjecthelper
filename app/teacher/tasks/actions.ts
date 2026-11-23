@@ -4,7 +4,8 @@ import { requireRole } from "@/lib/auth";
 import { str, int, ints, back } from "@/lib/util";
 import { buildContent, countItems, parseConfig } from "@/lib/tasks";
 
-export async function createTask(fd: FormData) {
+/** 出错时返回 { error }（页面保留已填内容并显示提示）；成功后跳转到任务页 */
+export async function createTask(fd: FormData): Promise<{ error?: string } | void> {
   const me = await requireRole("teacher");
   const title = str(fd, "title");
   const subjectId = int(fd, "subject_id");
@@ -12,19 +13,18 @@ export async function createTask(fd: FormData) {
   const onlyMine = fd.get("only_mine") === "1";
   const maxAttempts = Math.max(1, Math.min(10, int(fd, "max_attempts") ?? 3));
   const due = str(fd, "due_at") || null;
-  const fail = (err: string) => back("/teacher/tasks/new", { err });
 
-  if (!title) fail("请填写任务名称");
-  if (!subjectId) fail("请选择学科");
-  if (due && Number.isNaN(new Date(due).getTime())) fail("截止时间格式不正确");
-  if (due && new Date(due) < new Date()) fail("截止时间不能早于现在");
+  if (!title) return { error: "请填写任务名称" };
+  if (!subjectId) return { error: "请选择学科" };
+  if (due && Number.isNaN(new Date(due).getTime())) return { error: "截止时间格式不正确" };
+  if (due && new Date(due) < new Date()) return { error: "截止时间不能早于现在" };
   const { cfg, error } = parseConfig(fd);
-  if (error) fail(error);
-  if (!groupIds.length) fail("请至少勾选一个组别");
+  if (error) return { error };
+  if (!groupIds.length) return { error: "请至少勾选一个组别" };
 
   // 只允许自己的组别
   const okGroups = groupIds.filter((g) => (db.prepare("SELECT teacher_id FROM groups WHERE id=?").get(g) as any)?.teacher_id === me.id);
-  if (!okGroups.length) fail("所选组别无效");
+  if (!okGroups.length) return { error: "所选组别无效" };
   const ph = okGroups.map(() => "?").join(",");
   const students = db
     .prepare(
@@ -33,11 +33,11 @@ export async function createTask(fd: FormData) {
        ${onlyMine ? "AND EXISTS (SELECT 1 FROM teacher_students ts WHERE ts.teacher_id=? AND ts.student_id=u.id)" : ""}`
     )
     .all(...okGroups, ...(onlyMine ? [me.id] : [])) as { id: number }[];
-  if (!students.length) fail(onlyMine ? "所选组别中没有绑定给你的学生" : "所选组别中没有学生");
+  if (!students.length) return { error: onlyMine ? "所选组别中没有绑定给你的学生" : "所选组别中没有学生" };
 
-  const { content, warnings } = buildContent(subjectId!, cfg);
+  const { content, warnings } = buildContent(subjectId, cfg);
   const n = countItems(content);
-  if (n.mcq + n.match + n.cloze === 0) fail("所选条件下题库中没有题目：" + warnings.join("；"));
+  if (n.mcq + n.match + n.cloze === 0) return { error: "所选条件下题库中没有题目：" + warnings.join("；") };
 
   const taskId = db.transaction(() => {
     const id = Number(

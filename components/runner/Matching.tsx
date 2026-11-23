@@ -4,7 +4,7 @@ import { useT } from "../I18nProvider";
 
 type Item = { id: number; text: string };
 type Board = { left: Item[]; right: Item[]; swap?: boolean };
-const COLORS = ["#2f5d50", "#c2410c", "#1d4ed8", "#9333ea", "#be123c", "#0e7490", "#a16207", "#4d7c0f"];
+const LINE = "#2f5d50"; // 连线统一用品牌色；校验后对的变绿、错的变红
 
 export function BoardView({ board, mode, value, onChange, locked, marks }: {
   board: Board; mode: string; value: Record<string, number>; onChange: (v: Record<string, number>) => void; locked: boolean; marks?: Record<string, boolean>;
@@ -19,7 +19,7 @@ export function BoardView({ board, mode, value, onChange, locked, marks }: {
   const pairs = board.left.filter((l) => value[l.id] !== undefined).map((l) => [l.id, value[l.id]] as const);
   const rightUsedBy = new Map(pairs.map(([l, r]) => [r, l]));
   const colorOf = (leftId: number) =>
-    locked && marks ? (marks[leftId] ? "#1f7a4d" : "#b3261e") : COLORS[board.left.findIndex((l) => l.id === leftId) % COLORS.length];
+    locked && marks ? (marks[leftId] ? "#1f7a4d" : "#b3261e") : LINE;
 
   const connect = (leftId: number, rightId: number) => {
     const v = { ...value };
@@ -98,11 +98,11 @@ export function BoardView({ board, mode, value, onChange, locked, marks }: {
     <div className="card" style={{ marginBottom: 0 }}>
       <p className="muted small" style={{ marginTop: 0 }}>
         {mode === "en_cn"
-          ? (board.swap ? t("把中文意思和英文单词连起来。") : t("把英文单词和中文意思连起来。"))
-          : (board.swap ? t("把英文释义和对应的单词连起来。") : t("把英文单词和它的英文释义连起来。"))}
+          ? (board.swap ? t("把意思相同的英文和中文连起来（两边都有中文和英文）。") : t("把英文单词和中文意思连起来。"))
+          : (board.swap ? t("把单词和它的英文释义连起来（两边都有单词和释义）。") : t("把英文单词和它的英文释义连起来。"))}
         {t("点左边的词再点右边（也可以直接拖过去），点已连好的词可取消。")}
       </p>
-      <div className={"match-board" + (board.swap && mode === "en_def" ? " long-left" : "")} ref={wrap}>
+      <div className={"match-board" + (board.swap && mode === "en_def" ? " even" : "")} ref={wrap}>
         <svg className="match-svg">
           {lines.map((l, i) => <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke={l.c} strokeWidth={3} strokeLinecap="round" />)}
           {drag && <line x1={drag.x1} y1={drag.y1} x2={drag.x2} y2={drag.y2} stroke="#888" strokeWidth={2} strokeDasharray="6 4" />}

@@ -20,7 +20,7 @@ export default async function TaskResults({ me, id }: { me: User; id: number }) 
   const modes = contentModes(content).map((m) => (m === "en_cn" ? t("英-中") : t("英-释义"))).join(" + ");
   const parts = [
     n.mcq > 0 && t(`选择题 ${n.mcq} 道`),
-    n.match > 0 && `${t(`连线 ${n.match} 对`)}（${modes}${content.match?.swap ? " · " + t("左右随机") : ""}）`,
+    n.match > 0 && `${t(`连线 ${n.match} 对`)}（${modes}${content.match?.swap !== false ? " · " + t("左右随机") : ""}）`,
     n.cloze > 0 && `${t(`填空 ${n.cloze} 空`)}（${content.cloze!.title}）`,
   ].filter(Boolean);
 
