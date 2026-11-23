@@ -13,5 +13,10 @@ export function practiceSubjectIds(me: User): number[] {
   return rows.map((r) => r.id);
 }
 
+/** 教师负责的学科 id（admin 在账号管理里设置） */
+export function teacherSubjectIds(teacherId: number): number[] {
+  return (db.prepare("SELECT subject_id FROM teacher_subjects WHERE teacher_id=?").all(teacherId) as { subject_id: number }[]).map((r) => r.subject_id);
+}
+
 export const PRACTICE_LIMITS = { mcq: 50, match: 40 };
 export const PRACTICE_ATTEMPTS = 99;

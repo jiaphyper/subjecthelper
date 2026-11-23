@@ -39,6 +39,21 @@ async function updateUser(fd: FormData) {
   back(listUrl(fd), { ok: "已保存" });
 }
 
+async function setTeacherSubjects(fd: FormData) {
+  "use server";
+  await requireRole("admin");
+  const id = int(fd, "id");
+  const u = db.prepare("SELECT role FROM users WHERE id=?").get(id) as { role: string } | undefined;
+  if (u?.role !== "teacher") back(listUrl(fd), { err: "只有教师可以设置学科" });
+  const ids = fd.getAll("subject").map((v) => Number(v)).filter(Number.isFinite);
+  db.transaction(() => {
+    db.prepare("DELETE FROM teacher_subjects WHERE teacher_id=?").run(id);
+    const ins = db.prepare("INSERT OR IGNORE INTO teacher_subjects VALUES (?,?)");
+    ids.forEach((s) => ins.run(id, s));
+  })();
+  back(listUrl(fd), { ok: "已保存教师学科" });
+}
+
 async function resetPassword(fd: FormData) {
   "use server";
   await requireRole("admin");
@@ -79,6 +94,9 @@ export default async function UsersPage({ searchParams }: { searchParams: SP }) 
   const qs = new URLSearchParams(Object.entries({ role, org, q }).filter(([, v]) => v)).toString();
 
   const orgs = db.prepare("SELECT id, name FROM orgs ORDER BY name").all() as { id: number; name: string }[];
+  const subjects = db.prepare("SELECT id, name FROM subjects ORDER BY name").all() as { id: number; name: string }[];
+  const tsRows = db.prepare("SELECT teacher_id, subject_id FROM teacher_subjects").all() as { teacher_id: number; subject_id: number }[];
+  const subjOf = (tid: number) => tsRows.filter((r) => r.teacher_id === tid).map((r) => r.subject_id);
   const where: string[] = [];
   const args: any[] = [];
   if (role) { where.push("u.role = ?"); args.push(role); }
@@ -142,7 +160,7 @@ export default async function UsersPage({ searchParams }: { searchParams: SP }) 
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>{t("用户名")}</th><th>{t("姓名 / 学校")}</th><th>{t("角色")}</th><th>{t("绑定教师 / 组别")}</th><th>{t("重置密码")}</th><th>{t("状态")}</th><th></th></tr>
+            <tr><th>{t("用户名")}</th><th>{t("姓名 / 学校")}</th><th>{t("角色")}</th><th>{t("绑定教师 / 组别 / 学科")}</th><th>{t("重置密码")}</th><th>{t("状态")}</th><th></th></tr>
           </thead>
           <tbody>
             {users.map((u) => (
@@ -168,7 +186,31 @@ export default async function UsersPage({ searchParams }: { searchParams: SP }) 
                       <div className="muted">{u.grps || ""}</div>
                     </>
                   )}
-                  {u.role === "teacher" && <span>{t(`已绑定 ${u.bound} 名学生`)}</span>}
+                  {u.role === "teacher" && (() => {
+                    const mine = subjOf(u.id);
+                    return (
+                      <>
+                        <div>{t(`已绑定 ${u.bound} 名学生`)}</div>
+                        <details className="subj-edit">
+                          <summary>
+                            {mine.length
+                              ? subjects.filter((s) => mine.includes(s.id)).map((s) => <span key={s.id} className="badge" style={{ marginRight: 4 }}>{s.name}</span>)
+                              : <span className="badge warn">{t("未设置学科")}</span>}
+                            <span className="subj-edit-link">{t("设置学科")}</span>
+                          </summary>
+                          <form action={setTeacherSubjects} className="subj-edit-form">
+                            <input type="hidden" name="id" value={u.id} />
+                            <input type="hidden" name="_qs" value={qs} />
+                            {subjects.map((s) => (
+                              <label key={s.id}><input type="checkbox" name="subject" value={s.id} defaultChecked={mine.includes(s.id)} /> {s.name}</label>
+                            ))}
+                            {!subjects.length && <span className="muted">{t("还没有学科")}</span>}
+                            <button className="btn-sm">{t("保存")}</button>
+                          </form>
+                        </details>
+                      </>
+                    );
+                  })()}
                 </td>
                 <td>
                   <form action={resetPassword} className="inline-form">

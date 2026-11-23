@@ -2,12 +2,16 @@ import { db, User } from "@/lib/db";
 import { getT } from "@/lib/i18n-server";
 import { grantPractice, revokePractice } from "@/lib/practiceActions";
 import ConfirmButton from "./ConfirmButton";
+import { teacherSubjectIds } from "@/lib/practice";
 
 /** 自由练习开放设置（admin / 教师共用） */
 export default async function PracticeAdmin({ me }: { me: User }) {
   const t = await getT();
   const isAdmin = me.role === "admin";
-  const subjects = db.prepare("SELECT id, name FROM subjects ORDER BY name").all() as { id: number; name: string }[];
+  const allSubjects = db.prepare("SELECT id, name FROM subjects ORDER BY name").all() as { id: number; name: string }[];
+  // 教师只能开放自己负责的学科
+  const mineIds = isAdmin ? null : teacherSubjectIds(me.id);
+  const subjects = mineIds ? allSubjects.filter((s) => mineIds.includes(s.id)) : allSubjects;
   const orgs = isAdmin ? (db.prepare("SELECT id, name FROM orgs ORDER BY name").all() as { id: number; name: string }[]) : [];
   const groups = db
     .prepare(`SELECT g.id, g.name, o.name org, u.name teacher FROM groups g JOIN orgs o ON o.id=g.org_id LEFT JOIN users u ON u.id=g.teacher_id ${isAdmin ? "" : "WHERE g.teacher_id=?"} ORDER BY o.name, g.name`)
@@ -45,6 +49,13 @@ export default async function PracticeAdmin({ me }: { me: User }) {
     <>
       <h1>{t("自由练习")}</h1>
       <p className="muted small">{t("开放后，学生可以在「自由练习」里自己选题型和数量组卷，反复刷题。练习成绩不计入任务成绩。")}</p>
+      {!isAdmin && (
+        <p className="small">
+          {t("我负责的学科：")}
+          {subjects.length ? subjects.map((s) => <span key={s.id} className="badge" style={{ marginRight: 6 }}>{s.name}</span>) : <span className="muted">{t("还没有分配，请联系管理员在「账号管理」中设置")}</span>}
+        </p>
+      )}
+      {(isAdmin || subjects.length > 0) && (
       <form action={grantPractice} className="card">
         <h2>{t("开放新的学科")}</h2>
         <div className="field">
@@ -77,6 +88,7 @@ export default async function PracticeAdmin({ me }: { me: User }) {
         </div>
         <button style={{ marginTop: 12 }}>{t("开放")}</button>
       </form>
+      )}
 
       <h2>{t("已开放")}</h2>
       <div className="table-wrap">

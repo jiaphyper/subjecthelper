@@ -242,3 +242,16 @@ tr:hover td { background: #fcfcfa; }
   .dlg-overlay { place-items: end center; padding: 12px; }
   .dlg-actions button { flex: 1; }
 }
+
+/* 账号管理：教师学科 */
+.subj-edit { margin-top: 4px; }
+.subj-edit summary { cursor: pointer; list-style: none; display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+.subj-edit summary::-webkit-details-marker { display: none; }
+.subj-edit-link { color: var(--brand); font-size: 12px; margin-left: 4px; }
+.subj-edit-form { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fafaf7; }
+.subj-edit-form label { display: flex; gap: 6px; align-items: center; color: var(--ink); margin: 0; font-size: 13px; }
+.subj-edit-form button { align-self: flex-start; margin-top: 4px; }
+
+/* 改密码成功页 */
+.done-card { text-align: center; }
+.done-icon { width: 52px; height: 52px; border-radius: 50%; margin: 4px auto 12px; display: grid; place-items: center; background: var(--ok-soft); color: var(--ok); font-size: 26px; font-weight: 700; }

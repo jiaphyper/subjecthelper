@@ -99,6 +99,11 @@ export const EN: Record<string, string> = {
   "新密码至少 6 位": "New password must be at least 6 characters",
   "新密码不能和原密码相同": "New password must be different from the current one",
   "密码已修改，其它设备上的登录已退出": "Password changed. You've been signed out on other devices.",
+  "密码已修改": "Password changed",
+  "为了安全，所有设备上的登录都已退出。请用新密码重新登录。": "For your security, you've been signed out on all devices. Please sign in with your new password.",
+  "{a} 秒后自动跳转到登录页": "Going to the sign-in page in {a}s",
+  "立即登录": "Sign in now",
+  "密码已修改，请用新密码重新登录": "Password changed. Please sign in with your new password.",
   "你仍在使用默认密码 admin123，请立即修改。": "You're still using the default password admin123. Please change it now.",
 
   /* ---------- 导航 ---------- */
@@ -441,6 +446,15 @@ export const EN: Record<string, string> = {
   "格式错误": "Invalid format",
 
   /* ---------- 自由练习 ---------- */
+  "绑定教师 / 组别 / 学科": "Teachers / Groups / Subjects",
+  "只有教师可以设置学科": "Only teachers can have subjects",
+  "已保存教师学科": "Teacher's subjects saved",
+  "未设置学科": "No subjects",
+  "设置学科": "Set subjects",
+  "我负责的学科：": "My subjects: ",
+  "还没有分配，请联系管理员在「账号管理」中设置": "None assigned yet. Ask the admin to set them under Accounts.",
+  "只能开放你负责的学科": "You can only open your own subjects",
+  "所选学科和范围已经开放过了": "These subjects are already open for the selected scope",
   "自己选学科、题型和数量组一份练习。可以反复刷，成绩只自己可见，不计入老师布置的任务。": "Build your own practice: pick a subject, question types and how many. Practise as often as you like; scores are just for you and don't count toward assignments.",
   "老师还没有为你开放自由练习。": "Your teacher hasn't opened practice for you yet.",
   "我的练习记录": "My practice sessions",

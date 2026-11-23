@@ -137,6 +137,13 @@ CREATE TABLE IF NOT EXISTS attempts (
   UNIQUE (task_id, student_id, attempt_no)
 );
 
+-- 教师负责的学科（admin 设置）：教师只能对自己的学科开放自由练习
+CREATE TABLE IF NOT EXISTS teacher_subjects (
+  teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subject_id INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  PRIMARY KEY (teacher_id, subject_id)
+);
+
 -- 自由练习开放范围：all=所有学生，org=某学校，group=某组别
 CREATE TABLE IF NOT EXISTS practice_grants (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

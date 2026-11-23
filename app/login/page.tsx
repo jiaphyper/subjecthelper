@@ -13,7 +13,7 @@ async function login(formData: FormData) {
   redirect(homeFor(user.role));
 }
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string; changed?: string }> }) {
   const me = await currentUser();
   if (me) redirect(homeFor(me.role));
   const t = await getT();
@@ -28,6 +28,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
           <LangSwitch className="right" />
         </div>
+        {sp.changed && !sp.error && <div className="flash ok">{t("密码已修改，请用新密码重新登录")}</div>}
         {sp.error && <div className="flash bad">{sp.error === "locked" ? t("登录失败次数过多，请 10 分钟后再试") : t("用户名或密码错误")}</div>}
         <div className="field">
           <label>{t("用户名")}</label>

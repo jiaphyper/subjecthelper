@@ -2,14 +2,20 @@
 import { db } from "./db";
 import { requireRole } from "./auth";
 import { str, int, ints, back } from "./util";
+import { teacherSubjectIds } from "./practice";
 
 const base = (role: string) => (role === "admin" ? "/admin/practice" : "/teacher/practice");
 
 /** 开放自由练习：admin 可开放给全部学生 / 某学校 / 某组别；教师只能开放给自己的组别 */
 export async function grantPractice(fd: FormData) {
   const me = await requireRole("admin", "teacher");
-  const subjectIds = ints(fd, "subject");
+  let subjectIds = ints(fd, "subject");
   if (!subjectIds.length) back(base(me.role), { err: "请至少选择一个学科" });
+  if (me.role === "teacher") {
+    const mine = teacherSubjectIds(me.id);
+    subjectIds = subjectIds.filter((s) => mine.includes(s));
+    if (!subjectIds.length) back(base(me.role), { err: "只能开放你负责的学科" });
+  }
   const ins = db.prepare("INSERT INTO practice_grants (subject_id, scope, org_id, group_id, granted_by) VALUES (?,?,?,?,?)");
   const exists = db.prepare("SELECT 1 FROM practice_grants WHERE subject_id=? AND scope=? AND COALESCE(org_id,0)=COALESCE(?,0) AND COALESCE(group_id,0)=COALESCE(?,0)");
   const targets: { scope: string; org: number | null; group: number | null }[] = [];
@@ -36,6 +42,7 @@ export async function grantPractice(fd: FormData) {
       for (const tg of targets)
         if (!exists.get(s, tg.scope, tg.org, tg.group)) { ins.run(s, tg.scope, tg.org, tg.group, me.id); n++; }
   })();
+  if (!n) back(base(me.role), { err: "所选学科和范围已经开放过了" });
   back(base(me.role), { ok: `已开放 ${n} 项` });
 }
 

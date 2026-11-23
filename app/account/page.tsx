@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { requireRole, homeFor, hashPassword, destroyOtherSessions } from "@/lib/auth";
+import { requireRole, homeFor, hashPassword, destroySession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getT } from "@/lib/i18n-server";
 import Flash from "@/components/Flash";
@@ -15,8 +15,10 @@ async function changePassword(fd: FormData) {
   if (newPw.length < 6) redirect("/account?err=" + encodeURIComponent("新密码至少 6 位"));
   if (newPw === oldPw) redirect("/account?err=" + encodeURIComponent("新密码不能和原密码相同"));
   db.prepare("UPDATE users SET password_hash=? WHERE id=?").run(hashPassword(newPw), me.id);
-  await destroyOtherSessions(me.id);
-  redirect("/account?ok=" + encodeURIComponent("密码已修改，其它设备上的登录已退出"));
+  // 改密码后所有设备（包括当前）都退出，回到登录页用新密码登录
+  db.prepare("DELETE FROM sessions WHERE user_id=?").run(me.id);
+  await destroySession();
+  redirect("/account/done");
 }
 
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ ok?: string; err?: string }> }) {
