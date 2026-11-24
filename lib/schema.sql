@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS vocab (
   word TEXT NOT NULL,
   chinese TEXT,
   definition TEXT,
+  example TEXT,      -- 应用 / 例句：第一行英文，其余行中文翻译
   tag TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

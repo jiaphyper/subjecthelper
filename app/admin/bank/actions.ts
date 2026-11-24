@@ -31,7 +31,7 @@ export async function addMcq(fd: FormData) {
 export async function addVocab(fd: FormData) {
   await requireRole("admin");
   if (!str(fd, "word") || (!str(fd, "chinese") && !str(fd, "definition"))) back(ret(fd), { err: "请填写英文，以及中文或英文释义" });
-  db.prepare("INSERT INTO vocab (subject_id, word, chinese, definition, tag) VALUES (?,?,?,?,?)")
-    .run(int(fd, "subject_id"), str(fd, "word"), str(fd, "chinese") || null, str(fd, "definition") || null, str(fd, "tag") || null);
+  db.prepare("INSERT INTO vocab (subject_id, word, chinese, definition, example, tag) VALUES (?,?,?,?,?,?)")
+    .run(int(fd, "subject_id"), str(fd, "word"), str(fd, "chinese") || null, str(fd, "definition") || null, str(fd, "example") || null, str(fd, "tag") || null);
   back(ret(fd), { ok: "已添加词汇" });
 }

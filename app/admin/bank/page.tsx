@@ -6,6 +6,7 @@ import ConfirmButton from "@/components/ConfirmButton";
 import CheckAll from "@/components/CheckAll";
 import { deleteItems, addMcq, addVocab } from "./actions";
 import { getT } from "@/lib/i18n-server";
+import { splitExample } from "@/lib/example";
 
 const TABS = [["mcq", "选择题"], ["vocab", "词汇（连线题）"], ["cloze", "挖空填词"]] as const;
 const L = "ABCDEFGHIJ";
@@ -51,7 +52,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
         <div className="card">
           <h2>{tab === "cloze" ? t("上传 Word 文档") : t("上传 Excel")}</h2>
           {tab === "mcq" && <p className="small muted">{t("表头：题干 | A | B | C | D | (E | F) | 答案 | 解析 | 标签。答案填字母。")}</p>}
-          {tab === "vocab" && <p className="small muted">{t("表头：英文 | 中文 | 英文释义 | 标签。中文用于「英-中」连线，英文释义用于「英-英释义」连线，可只填其一。只填了中文的词不会出现在「英-英释义」连线里。")}</p>}
+          {tab === "vocab" && <p className="small muted">{t("表头：英文 | 中文 | 英文释义 | 应用 | 标签。中文用于「英-中」连线，英文释义用于「英-英释义」连线，可只填其一。只填了中文的词不会出现在「英-英释义」连线里。「应用」是例句（可选，单元格内换行：第一行英文、第二行中文），学生校验后显示。")}</p>}
           {tab === "cloze" && <p className="small muted">{t("Word 中放一个两列表格：第一列是句子，需要填空的词加粗；第二列是多出来的干扰词。一个文档 = 一套题。")}</p>}
           <p><a href={`/api/templates/${tab}`}>{t("下载模板")}</a></p>
           <UploadForm endpoint={`/api/admin/import/${tab}`} accept={tab === "cloze" ? ".docx" : ".xlsx,.xls,.csv"}>
@@ -87,6 +88,7 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
                 <input type="text" name="word" placeholder={t("英文")} /><input type="text" name="chinese" placeholder={t("中文")} />
               </div>
               <div className="field" style={{ marginTop: 8 }}><input type="text" name="definition" placeholder={t("英文释义")} /></div>
+              <div className="field"><textarea name="example" rows={2} placeholder={t("应用（例句，可选）：第一行英文，第二行中文")} /></div>
               <div className="row"><input type="text" name="tag" placeholder={t("标签")} style={{ width: 140 }} defaultValue={tag !== "__none" ? tag : ""} /><button>{t("添加")}</button></div>
             </form>
           )}
@@ -139,13 +141,14 @@ export default async function BankPage({ searchParams }: { searchParams: SP }) {
             )}
             {tab === "vocab" && (
               <>
-                <thead><tr><th style={{ width: 36 }}></th><th>{t("英文")}</th><th>{t("中文")}</th><th>{t("英文释义")}</th><th>{t("标签")}</th></tr></thead>
+                <thead><tr><th style={{ width: 36 }}></th><th>{t("英文")}</th><th>{t("中文")}</th><th>{t("英文释义")}</th><th>{t("应用")}</th><th>{t("标签")}</th></tr></thead>
                 <tbody>
                   {items.map((v) => (
                     <tr key={v.id}>
                       <td><input type="checkbox" name="id" value={v.id} /></td>
                       <td><b>{v.word}</b></td><td>{v.chinese || <span className="muted">—</span>}</td>
                       <td className="small">{v.definition || <span className="muted">—</span>}</td>
+                      <td className="small">{(() => { const e = splitExample(v.example); return e ? <><div>{e.en}</div>{e.zh && <div className="muted">{e.zh}</div>}</> : <span className="muted">—</span>; })()}</td>
                       <td>{v.tag && <span className="badge gray">{v.tag}</span>}</td>
                     </tr>
                   ))}

@@ -335,3 +335,16 @@ tr:hover td { background: #fcfcfa; }
   .lp-nav .lang-switch { display: none; }
   .lp-final { border-radius: 0; }
 }
+
+/* 连线题：应用 / 例句 */
+.ex-panel { margin-top: 14px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); }
+.ex-head { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.ex-item { padding: 10px 0 10px 12px; border-left: 3px solid var(--ok); margin: 6px 0; }
+.ex-item.bad { border-left-color: var(--bad); background: linear-gradient(90deg, var(--bad-soft), transparent 60%); }
+.ex-word { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.ex-mark { font-weight: 700; color: var(--ok); }
+.ex-item.bad .ex-mark { color: var(--bad); }
+.ex-en { margin-top: 4px; font-size: 16px; line-height: 1.6; }
+.ex-en mark, .ex-inline mark { background: var(--brand-soft); color: var(--brand); font-weight: 700; padding: 0 2px; border-radius: 3px; }
+.ex-zh { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.ex-inline { margin-top: 6px; font-size: 13px; line-height: 1.6; }

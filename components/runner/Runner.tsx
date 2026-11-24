@@ -4,6 +4,8 @@ import type { PublicContent } from "@/lib/tasks";
 import McqQuestion from "./Mcq";
 import { BoardView } from "./Matching";
 import Cloze, { Place } from "./Cloze";
+import ExamplePanel from "./ExamplePanel";
+import type { PairExample } from "@/lib/example";
 import { useT } from "../I18nProvider";
 import { useConfirm } from "../Dialog";
 
@@ -17,6 +19,7 @@ export interface Draft {
   place?: Place;
   marks?: Record<string, Marks>;
   lastScore?: LastScore;
+  examples?: Record<string, PairExample[]>;
 }
 
 export default function Runner({ taskId, attemptId, title, attemptNo, maxAttempts, practice, content, initialChecked, initialDraft }: {
@@ -35,6 +38,7 @@ export default function Runner({ taskId, attemptId, title, attemptNo, maxAttempt
   const [recorded, setRecorded] = useState<Recorded>(initialChecked);
   const [marks, setMarks] = useState<Record<string, Marks>>(initialDraft.marks ?? {});      // 最近一次校验的对错
   const [lastScore, setLastScore] = useState<LastScore>(initialDraft.lastScore ?? {});
+  const [examples, setExamples] = useState<Record<string, PairExample[]>>(initialDraft.examples ?? {}); // 校验后才有
   const [mcq, setMcq] = useState<Record<string, number>>(initialDraft.mcq ?? {});
   const [match, setMatch] = useState<Record<string, number>>(initialDraft.match ?? {});
   const [place, setPlace] = useState<Place>(initialDraft.place ?? {});
@@ -44,7 +48,7 @@ export default function Runner({ taskId, attemptId, title, attemptNo, maxAttempt
 
   /* ---------- 自动保存草稿 ---------- */
   const draftUrl = `/api/student/attempts/${attemptId}/draft`;
-  const draft = useMemo<Draft>(() => ({ idx, mcq, match, place, marks, lastScore }), [idx, mcq, match, place, marks, lastScore]);
+  const draft = useMemo<Draft>(() => ({ idx, mcq, match, place, marks, lastScore, examples }), [idx, mcq, match, place, marks, lastScore, examples]);
   const draftRef = useRef(draft);
   draftRef.current = draft;
   const dirty = useRef(false);
@@ -135,6 +139,7 @@ export default function Runner({ taskId, attemptId, title, attemptNo, maxAttempt
       setMarks((m) => ({ ...m, [unit]: d.marks }));
       setLastScore((s) => ({ ...s, [unit]: { score: d.score, total: d.total, first: d.first } }));
       setRecorded((rec) => ({ ...rec, [unit]: d.recorded }));
+      if (Array.isArray(d.examples) && d.examples.length) setExamples((e) => ({ ...e, [unit]: d.examples }));
     } catch {
       setErr(t("网络错误，请重试"));
     } finally {
@@ -232,6 +237,7 @@ export default function Runner({ taskId, attemptId, title, attemptNo, maxAttempt
         <BoardView key={unit} board={content.match!.boards[Number(unit.slice(6))]} mode={content.match!.boards[Number(unit.slice(6))].mode ?? content.match!.mode ?? "en_cn"}
           value={match} onChange={setMatch} locked={locked} marks={marks[unit] as Record<string, boolean> | undefined} />
       )}
+      {unit.startsWith("match:") && locked && examples[unit] && <ExamplePanel items={examples[unit]} />}
       {unit === "cloze" && (
         <Cloze data={content.cloze!} place={place} setPlace={setPlace} locked={locked} marks={marks[unit] as Record<string, boolean[]> | undefined} />
       )}

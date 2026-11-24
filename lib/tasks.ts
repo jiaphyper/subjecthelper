@@ -11,7 +11,7 @@ export interface TaskConfig {
   cloze?: { setId: number; count: number };
 }
 type Seg = { t: string } | { b: string };
-export interface MatchPair { id: number; left: string; right: string; mode?: MatchMode }
+export interface MatchPair { id: number; left: string; right: string; mode?: MatchMode; /** 应用（例句），校验后显示 */ example?: string }
 /** 发布时冻结的完整题目（含答案），题库后续修改/删除不影响已发布任务 */
 export interface TaskContent {
   mcq?: { id: number; stem: string; options: string[]; answer: number; explanation?: string | null }[];
@@ -108,7 +108,7 @@ export function buildContent(subjectId: number, cfg: TaskConfig): { content: Tas
       const avail = modes.filter((m) => can(v, m));
       const mode = avail.length === 1 ? avail[0] : avail.reduce((a, b) => (used[b] < used[a] ? b : a));
       used[mode]++;
-      return { id: v.id, left: v.word, right: mode === "en_cn" ? v.chinese : v.definition, mode };
+      return { id: v.id, left: v.word, right: mode === "en_cn" ? v.chinese : v.definition, mode, ...(filled(v.example) ? { example: v.example } : {}) };
     });
     content.match = { swap: !!cfg.match.swap, pairs };
   }
@@ -312,6 +312,18 @@ export function gradeUnit(c: TaskContent, layout: PublicContent, unit: string, a
     return { check: { score, total, marks }, patch: { cloze: patch } };
   }
   return null;
+}
+
+/** 某组连线的例句（校验后才返回给学生，避免提前泄露答案）。错的排在前面 */
+export function boardExamples(c: TaskContent, layout: PublicContent, unit: string, marks: Record<string, boolean | boolean[]>) {
+  if (!unit.startsWith("match:") || !c.match) return [];
+  const board = layout.match?.boards[Number(unit.slice(6))];
+  if (!board) return [];
+  return board.left
+    .map((l) => c.match!.pairs.find((p) => p.id === l.id))
+    .filter((p): p is MatchPair => !!p && !!p.example)
+    .map((p) => ({ id: p.id, word: p.left, meaning: p.right, example: p.example!, ok: marks[p.id] === true }))
+    .sort((a, b) => Number(a.ok) - Number(b.ok));
 }
 
 export function mergeAnswers(a: Answers, p: Answers): Answers {

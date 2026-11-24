@@ -32,17 +32,18 @@ export function importMcq(rows: Record<string, string>[], subjectId: number, def
 
 export function importVocab(rows: Record<string, string>[], subjectId: number, defaultTag: string): BankResult {
   const res: BankResult = { created: 0, errors: [], notes: [] };
-  const ins = db.prepare("INSERT INTO vocab (subject_id, word, chinese, definition, tag) VALUES (?,?,?,?,?)");
+  const ins = db.prepare("INSERT INTO vocab (subject_id, word, chinese, definition, example, tag) VALUES (?,?,?,?,?,?)");
   db.transaction(() => {
     rows.forEach((r, i) => {
       const line = i + 2;
       const word = pick(r, "英文", "单词", "word", "english");
       const zh = pick(r, "中文", "chinese", "翻译");
       const def = pick(r, "英文释义", "释义", "definition", "meaning");
+      const example = pick(r, "应用", "例句", "example", "usage", "sentence");
       if (!word && !zh && !def) return;
       if (!word) return res.errors.push(`第 ${line} 行：缺少英文单词`);
       if (!zh && !def) return res.errors.push(`第 ${line} 行：${word} 中文和英文释义至少填一个`);
-      ins.run(subjectId, word, zh || null, def || null, pick(r, "标签", "tag", "单元") || defaultTag || null);
+      ins.run(subjectId, word, zh || null, def || null, example || null, pick(r, "标签", "tag", "单元") || defaultTag || null);
       res.created++;
     });
   })();

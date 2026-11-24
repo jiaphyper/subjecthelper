@@ -28,11 +28,11 @@ const TEMPLATES: Record<string, { file: string; sheet: string; rows: any[][]; wi
   vocab: {
     file: "词汇导入模板.xlsx",
     sheet: "词汇",
-    widths: [18, 18, 50, 12],
+    widths: [18, 18, 44, 50, 12],
     rows: [
-      ["英文", "中文", "英文释义", "标签"],
-      ["apple", "苹果", "a round fruit with red or green skin", "Unit 1"],
-      ["velocity", "速度", "speed in a given direction", "Mechanics"],
+      ["英文", "中文", "英文释义", "应用", "标签"],
+      ["sound", "n. 声音", "vibrations that travel through a medium and can be heard", "Sound cannot travel through a vacuum.\n声音不能在真空中传播。", "CH12 Sound"],
+      ["velocity", "速度", "speed in a given direction", "", "Mechanics"],
     ],
   },
 };
@@ -63,11 +63,11 @@ const TEMPLATES_EN: typeof TEMPLATES = {
   vocab: {
     file: "vocab_template.xlsx",
     sheet: "Vocab",
-    widths: [18, 18, 50, 12],
+    widths: [18, 18, 44, 50, 12],
     rows: [
-      ["word", "chinese", "definition", "tag"],
-      ["apple", "苹果", "a round fruit with red or green skin", "Unit 1"],
-      ["velocity", "速度", "speed in a given direction", "Mechanics"],
+      ["word", "chinese", "definition", "example", "tag"],
+      ["sound", "n. 声音", "vibrations that travel through a medium and can be heard", "Sound cannot travel through a vacuum.\n声音不能在真空中传播。", "CH12 Sound"],
+      ["velocity", "速度", "speed in a given direction", "", "Mechanics"],
     ],
   },
 };

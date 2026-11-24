@@ -1,5 +1,6 @@
 import { TaskContent, GradeResult, Answers, pairMode } from "@/lib/tasks";
 import { getT } from "@/lib/i18n-server";
+import { highlightWord, splitExample } from "@/lib/example";
 
 const L = "ABCDEFGHIJ";
 const okStyle = { color: "var(--ok)", fontWeight: 600 };
@@ -45,7 +46,19 @@ export default async function AttemptReview({ content, result, answers, showAnsw
                   return (
                     <tr key={p.id}>
                       <td style={{ width: 30 }}>{r.ok ? "✅" : "❌"}</td>
-                      <td><b>{p.left}</b> <span className="badge gray">{pairMode(content, p) === "en_cn" ? t("中文") : t("释义")}</span></td>
+                      <td>
+                        <b>{p.left}</b> <span className="badge gray">{pairMode(content, p) === "en_cn" ? t("中文") : t("释义")}</span>
+                        {(() => {
+                          const e = splitExample(p.example);
+                          if (!e) return null;
+                          return (
+                            <div className="ex-inline">
+                              <div>{highlightWord(e.en, p.left).map((x, i) => (x.hit ? <mark key={i}>{x.t}</mark> : <span key={i}>{x.t}</span>))}</div>
+                              {e.zh && <div className="muted">{e.zh}</div>}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td>{chosenText ? <span style={r.ok ? okStyle : badStyle}>{chosenText}</span> : <span className="badge bad">{t("未连")}</span>}</td>
                       {showAnswers && <td className="small" style={okStyle}>{!r.ok && p.right}</td>}
                     </tr>

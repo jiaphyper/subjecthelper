@@ -3,6 +3,13 @@
  * 新增界面文案时，在这里补一条英文即可；缺失时界面会显示中文原文。
  */
 export const EN: Record<string, string> = {
+  /* ---------- 应用 / 例句 ---------- */
+  "应用": "Example",
+  "应用 · 例句": "Examples",
+  "应用（例句，可选）：第一行英文，第二行中文": "Example sentence (optional): English on line 1, Chinese on line 2",
+  "表头：英文 | 中文 | 英文释义 | 应用 | 标签。中文用于「英-中」连线，英文释义用于「英-英释义」连线，可只填其一。只填了中文的词不会出现在「英-英释义」连线里。「应用」是例句（可选，单元格内换行：第一行英文、第二行中文），学生校验后显示。":
+    "Columns: word | chinese | definition | example | tag. Chinese is used for English–Chinese matching and definition for English–definition matching; you can fill just one. Words with only Chinese won't appear in English–definition matching. “example” is an optional sentence (line break inside the cell: English first, then Chinese), shown to students after they check.",
+
   /* ---------- 首页 ---------- */
   "进入我的主页": "Go to my dashboard",
   "力的国际单位是？": "What is the SI unit of force?",
