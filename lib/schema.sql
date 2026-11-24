@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL CHECK (role IN ('admin','teacher','student')),
   org_id INTEGER REFERENCES orgs(id) ON DELETE SET NULL,
   active INTEGER NOT NULL DEFAULT 1,
+  onboarded INTEGER NOT NULL DEFAULT 0,   -- 是否已看过/跳过新手指引
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

@@ -43,7 +43,7 @@ export default function TaskForm({ subjects, groups, action }: { subjects: Subje
 
   return (
     <form onSubmit={onSubmit}>
-      <div className="card">
+      <div className="card" data-tour="task-title">
         <div className="grid3">
           <div style={{ gridColumn: "span 3" }}>
             <label>{t("任务名称 *")}</label>
@@ -54,11 +54,11 @@ export default function TaskForm({ subjects, groups, action }: { subjects: Subje
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" data-tour="task-content">
         <ContentFields subjects={subjects} onIssues={setContentIssues} />
       </div>
 
-      <div className={"card" + (groupIssue && picked.size ? " card-warn" : "")}>
+      <div className={"card" + (groupIssue && picked.size ? " card-warn" : "")} data-tour="task-groups">
         <h2>{t("发布给哪些组别")}</h2>
         <div className="checklist">
           {groups.map((g) => (
@@ -75,7 +75,7 @@ export default function TaskForm({ subjects, groups, action }: { subjects: Subje
       </div>
 
       {serverError && <div className="flash bad">{serverError}</div>}
-      <div className="row submit-row">
+      <div className="row submit-row" data-tour="task-publish">
         <button type="submit" disabled={blocked} style={{ padding: "10px 24px" }}>{pending ? t("发布中…") : t("发布任务")}</button>
         {issues.length > 0 && !pending && (
           <div className="small submit-hint">

@@ -26,6 +26,15 @@ export async function grantPractice(fd: FormData) {
       const org = int(fd, "org_id");
       if (!org) back(base(me.role), { err: "请选择学校" });
       targets.push({ scope, org, group: null });
+    } else if (scope === "teacher") {
+      // 指定教师：授权学科给教师，由教师自己选择开放给哪些组别
+      const tids = ints(fd, "teacher").filter((id) => (db.prepare("SELECT role FROM users WHERE id=?").get(id) as any)?.role === "teacher");
+      if (!tids.length) back(base(me.role), { err: "请至少勾选一位教师" });
+      const insT = db.prepare("INSERT OR IGNORE INTO teacher_subjects VALUES (?,?)");
+      let added = 0;
+      db.transaction(() => { for (const tid of tids) for (const s of subjectIds) added += insT.run(tid, s).changes; })();
+      if (!added) back(base(me.role), { err: "所选教师已经有这些学科了" });
+      back(base(me.role), { ok: `已授权 ${tids.length} 位教师，他们可以在自己的「自由练习」页选择组别开放` });
     } else if (scope === "group") {
       const gs = ints(fd, "group");
       if (!gs.length) back(base(me.role), { err: "请至少勾选一个组别" });
@@ -44,6 +53,13 @@ export async function grantPractice(fd: FormData) {
   })();
   if (!n) back(base(me.role), { err: "所选学科和范围已经开放过了" });
   back(base(me.role), { ok: `已开放 ${n} 项` });
+}
+
+/** admin 取消教师的某个学科授权（教师之前开放过的记录保留） */
+export async function revokeTeacherSubject(fd: FormData) {
+  await requireRole("admin");
+  db.prepare("DELETE FROM teacher_subjects WHERE teacher_id=? AND subject_id=?").run(int(fd, "teacher_id"), int(fd, "subject_id"));
+  back("/admin/practice", { ok: "已取消授权" });
 }
 
 export async function revokePractice(fd: FormData) {

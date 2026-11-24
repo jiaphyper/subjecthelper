@@ -18,13 +18,13 @@ export default async function GroupList({ me }: { me: User }) {
   return (
     <>
       {!isAdmin && (
-        <form action={createGroup} className="card row">
+        <form action={createGroup} className="card row" data-tour="group-create">
           <input type="text" name="name" placeholder={t("新组别名称，如 G10-A")} style={{ maxWidth: 240 }} required />
           <button>{t("创建组别")}</button>
         </form>
       )}
       {isAdmin && <p className="muted small">{t("组别由教师自行创建和管理，这里仅供查看。")}</p>}
-      <div className="table-wrap">
+      <div className="table-wrap" data-tour="group-list">
         <table>
           <thead><tr><th>{t("组别")}</th>{isAdmin && <th>{t("学校")}</th>}<th>{t("教师")}</th><th>{t("人数")}</th><th></th></tr></thead>
           <tbody>

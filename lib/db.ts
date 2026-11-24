@@ -37,6 +37,7 @@ function addColumns(db: Database.Database) {
   const has = (table: string, col: string) =>
     (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some((c) => c.name === col);
   if (!has("tasks", "kind")) db.exec("ALTER TABLE tasks ADD COLUMN kind TEXT NOT NULL DEFAULT 'task'");
+  if (!has("users", "onboarded")) db.exec("ALTER TABLE users ADD COLUMN onboarded INTEGER NOT NULL DEFAULT 0");
   if (!has("vocab", "example")) db.exec("ALTER TABLE vocab ADD COLUMN example TEXT");
   if (!has("attempts", "draft_json")) db.exec("ALTER TABLE attempts ADD COLUMN draft_json TEXT NOT NULL DEFAULT '{}'");
   db.exec("CREATE INDEX IF NOT EXISTS idx_tasks_kind ON tasks(kind, teacher_id)");

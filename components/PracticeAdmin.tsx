@@ -1,6 +1,7 @@
 import { db, User } from "@/lib/db";
 import { getT } from "@/lib/i18n-server";
-import { grantPractice, revokePractice } from "@/lib/practiceActions";
+import { grantPractice, revokePractice, revokeTeacherSubject } from "@/lib/practiceActions";
+import AdminScopePicker from "./AdminScopePicker";
 import ConfirmButton from "./ConfirmButton";
 import { teacherSubjectIds } from "@/lib/practice";
 import Pager, { pageOf, PER_PAGE } from "./Pager";
@@ -82,27 +83,65 @@ export default async function PracticeAdmin({ me, sp = {} }: { me: User; sp?: Re
           </div>
         </div>
         {isAdmin ? (
-          <div className="field">
-            <label>{t("开放范围")}</label>
-            <div className="stack">
-              <label className="row" style={{ margin: 0, color: "var(--ink)" }}><input type="radio" name="scope" value="all" /> {t("全部学生")}</label>
-              <label className="row" style={{ margin: 0, color: "var(--ink)" }}>
-                <input type="radio" name="scope" value="org" /> {t("某个学校：")}
-                <select name="org_id" style={{ width: 220 }}><option value="">{t("选择学校…")}</option>{orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
-              </label>
-              <label className="row" style={{ margin: 0, color: "var(--ink)" }}><input type="radio" name="scope" value="group" defaultChecked /> {t("指定组别（在下方勾选）：")}</label>
-            </div>
+          <AdminScopePicker
+            orgs={orgs}
+            groups={groups}
+            teachers={db.prepare("SELECT u.id, u.name, u.username, o.name org FROM users u LEFT JOIN orgs o ON o.id=u.org_id WHERE u.role='teacher' AND u.active=1 ORDER BY o.name, u.name").all() as any[]}
+          />
+        ) : (
+          <div className="checklist" style={{ maxHeight: 220 }}>
+            {groups.map((g) => (
+              <label key={g.id}><input type="checkbox" name="group" value={g.id} /> <b>{g.name}</b></label>
+            ))}
+            {!groups.length && <div className="muted small">{t("还没有组别")}</div>}
           </div>
-        ) : null}
-        <div className="checklist" style={{ maxHeight: 220 }}>
-          {groups.map((g) => (
-            <label key={g.id}><input type="checkbox" name="group" value={g.id} /> <b>{g.name}</b> <span className="muted small">{isAdmin ? `${g.org} · ${g.teacher ?? "—"}` : ""}</span></label>
-          ))}
-          {!groups.length && <div className="muted small">{t("还没有组别")}</div>}
-        </div>
+        )}
         <button style={{ marginTop: 12 }}>{t("开放")}</button>
       </form>
       )}
+
+      {isAdmin && (() => {
+        const rows = db
+          .prepare(
+            `SELECT u.id, u.name, u.username, s.id sid, s.name subject,
+               (SELECT COUNT(*) FROM practice_grants p JOIN groups g ON g.id=p.group_id WHERE p.subject_id=s.id AND g.teacher_id=u.id) opened
+             FROM teacher_subjects ts JOIN users u ON u.id=ts.teacher_id JOIN subjects s ON s.id=ts.subject_id
+             ORDER BY u.name, s.name`
+          )
+          .all() as any[];
+        const byT = new Map<number, { name: string; username: string; items: any[] }>();
+        rows.forEach((r) => { if (!byT.has(r.id)) byT.set(r.id, { name: r.name, username: r.username, items: [] }); byT.get(r.id)!.items.push(r); });
+        return (
+          <>
+            <h2>{t("已授权的教师")}</h2>
+            <div className="table-wrap" style={{ marginBottom: 24 }}>
+              <table>
+                <thead><tr><th>{t("教师")}</th><th>{t("学科（已开放的组别数）")}</th></tr></thead>
+                <tbody>
+                  {[...byT.entries()].map(([tid, x]) => (
+                    <tr key={tid}>
+                      <td><b>{x.name}</b> <span className="muted small">{x.username}</span></td>
+                      <td>
+                        <div className="row" style={{ gap: 6 }}>
+                          {x.items.map((it) => (
+                            <form key={it.sid} action={revokeTeacherSubject} className="subj-pill">
+                              <input type="hidden" name="teacher_id" value={tid} />
+                              <input type="hidden" name="subject_id" value={it.sid} />
+                              <span>{it.subject} <span className="muted">({it.opened})</span></span>
+                              <ConfirmButton message={t(`取消 ${x.name} 的「${it.subject}」授权？之前开放过的组别会保留。`)} className="pill-x" okText={t("取消授权")}>×</ConfirmButton>
+                            </form>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {!byT.size && <tr><td colSpan={2} className="muted">{t("还没有授权任何教师")}</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </>
+        );
+      })()}
 
       <h2>{t("已开放")}</h2>
       {isAdmin && (

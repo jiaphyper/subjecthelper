@@ -1,8 +1,11 @@
 import Shell from "@/components/Shell";
+import Tour, { TEACHER_STEPS } from "@/components/Tour";
 import { requireRole } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
   const user = await requireRole("teacher");
+  const onboarded = !!(db.prepare("SELECT onboarded FROM users WHERE id=?").get(user.id) as { onboarded: number } | undefined)?.onboarded;
   return (
     <Shell
       user={user}
@@ -15,6 +18,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
       ]}
     >
       {children}
+      <Tour steps={TEACHER_STEPS} storageKey={`sh_tour_teacher_${user.id}`} onboarded={onboarded} />
     </Shell>
   );
 }

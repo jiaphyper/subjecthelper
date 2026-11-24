@@ -35,7 +35,7 @@ h3 { font-size: 15px; margin: 0 0 8px; }
 .side a.active { background: rgba(255,255,255,.14); color: #fff; }
 .side .grow { flex: 1; }
 .side .me { font-size: 13px; padding: 8px 10px; opacity: .85; }
-.main { padding: 28px 32px; max-width: 1200px; width: 100%; }
+.main { padding: 28px 32px; max-width: 1200px; width: 100%; min-width: 0; } /* min-width:0：防止宽表格把网格撑宽 */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .topbar h1 { margin: 0; }
 
@@ -348,3 +348,48 @@ tr:hover td { background: #fcfcfa; }
 .ex-en mark, .ex-inline mark { background: var(--brand-soft); color: var(--brand); font-weight: 700; padding: 0 2px; border-radius: 3px; }
 .ex-zh { color: var(--muted); font-size: 14px; margin-top: 2px; }
 .ex-inline { margin-top: 6px; font-size: 13px; line-height: 1.6; }
+
+/* 已授权教师的学科标签 */
+.subj-pill { display: inline-flex; align-items: center; gap: 4px; margin: 0; padding: 2px 4px 2px 10px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 13px; }
+.subj-pill .pill-x { background: transparent; border: 0; color: var(--brand); padding: 0 6px; font-size: 15px; line-height: 1; }
+.subj-pill .pill-x:hover { color: var(--bad); }
+
+/* ---------- 新手指引 ---------- */
+.tour-root { position: fixed; inset: 0; z-index: 1500; pointer-events: none; }
+.tour-shade { position: fixed; background: rgba(22, 30, 27, .5); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); pointer-events: auto; transition: all .2s ease; }
+.tour-ring { position: fixed; border-radius: 12px; box-shadow: 0 0 0 3px var(--brand), 0 0 0 9px rgba(47,93,80,.25); pointer-events: none; transition: all .2s ease; animation: tour-pulse 1.8s ease-in-out infinite; }
+@keyframes tour-pulse { 50% { box-shadow: 0 0 0 3px var(--brand), 0 0 0 14px rgba(47,93,80,.12); } }
+.tour-pop { position: fixed; width: 330px; background: #fff; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.25); padding: 18px 18px 14px; pointer-events: auto; animation: dlg-pop .16s ease-out; }
+.tour-pop.center { left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100vw - 32px)); }
+.tour-pop h3 { margin: 4px 0 6px; font-size: 17px; }
+.tour-pop p { margin: 0; color: #444; font-size: 14px; line-height: 1.65; }
+.tour-count { font-size: 12px; font-weight: 600; color: var(--brand); }
+.tour-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+.tour-actions .grow { flex: 1; }
+.tour-skip { background: none; border: 0; color: var(--muted); padding: 4px 0; font-size: 13px; }
+.tour-skip:hover { color: var(--ink); filter: none; }
+.tour-hint { color: var(--brand); font-weight: 600; }
+.tour-steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 8px; }
+.tour-steps li { counter-increment: s; display: grid; grid-template-columns: 28px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; background: #fafaf7; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.tour-steps li::before { content: counter(s); grid-row: span 2; width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+.tour-steps span { color: var(--muted); font-size: 12px; }
+.tour-resume { position: fixed; right: 16px; bottom: 16px; z-index: 1400; display: flex; align-items: center; gap: 8px; background: #23302c; color: #fff; padding: 8px 10px 8px 14px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.2); font-size: 13px; }
+.tour-resume .btn-ghost { background: transparent; color: #cfd8d4; border-color: rgba(255,255,255,.3); }
+@media (max-width: 640px) {
+  .tour-pop:not(.center) { left: 12px !important; right: 12px; bottom: 12px; top: auto !important; width: auto; }
+}
+
+/* 教师首页「开始使用」 */
+.checklist-card { border-color: #cfdcd6; }
+.cl-progress { height: 6px; border-radius: 3px; background: #eeece6; margin: 14px 0 6px; overflow: hidden; }
+.cl-progress i { display: block; height: 100%; background: var(--brand); border-radius: 3px; transition: width .3s; }
+.cl-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cl-list li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; }
+.cl-list li.next { background: var(--brand-soft); border-color: #cfdcd6; }
+.cl-list li.done .cl-text b { color: var(--muted); text-decoration: line-through; }
+.cl-dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; background: #eeece6; color: var(--muted); flex-shrink: 0; }
+.cl-list li.next .cl-dot { background: var(--brand); color: #fff; }
+.cl-list li.done .cl-dot { background: var(--ok-soft); color: var(--ok); }
+.cl-text { flex: 1; display: flex; flex-direction: column; }
+.cl-text span { font-size: 13px; color: var(--muted); }
+.cl-list li.optional { opacity: .85; }

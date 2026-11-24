@@ -43,7 +43,7 @@ export default async function GroupEditor({ me, id, sp }: { me: User; id: number
         </label>
         <button className="btn-ghost">{t("筛选")}</button>
       </form>
-      <form action={saveGroup} className="card">
+      <form action={saveGroup} className="card" data-tour="group-members">
         <input type="hidden" name="id" value={g.id} />
         <input type="hidden" name="_qs" value={qs} />
         <div className="row" style={{ marginBottom: 12 }}>
@@ -51,7 +51,7 @@ export default async function GroupEditor({ me, id, sp }: { me: User; id: number
           <div style={{ alignSelf: "end" }}><CheckAll name="student" /></div>
           <div style={{ alignSelf: "end" }} className="right">
             <span className="muted small" style={{ marginRight: 10 }}>{t(`当前成员 ${students.filter((s) => s.member).length} 人`)}</span>
-            <button>{t("保存")}</button>
+            <button data-tour="group-save">{t("保存")}</button>
           </div>
         </div>
         <div className="table-wrap">
